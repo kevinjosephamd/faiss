@@ -467,7 +467,15 @@ size_t CuvsIVFFlat::getGpuVectorsEncodingSize_(idx_t numVecs) const {
     idx_t bits = 32 /* float */;
 
     // bytes to encode a block of 32 vectors (single dimension)
+#ifdef USE_AMD_ROCM
+    // hipVS packs kIndexGroupSize (64) vectors per interleaved group instead of
+    // 32; numBlocks below already uses kIndexGroupSize, so hardcoding 32 here
+    // undersizes the buffer and pack_all() overruns it, corrupting the heap.
+    idx_t bytesPerDimBlock =
+            bits * cuvs::neighbors::ivf_flat::kIndexGroupSize / 8;
+#else
     idx_t bytesPerDimBlock = bits * 32 / 8; // = 128
+#endif
 
     // bytes to fully encode 32 vectors
     idx_t bytesPerBlock = bytesPerDimBlock * dim_;
