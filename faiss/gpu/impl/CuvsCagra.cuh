@@ -40,14 +40,30 @@ namespace faiss {
 /// Algorithm used to build underlying CAGRA graph
 enum class cagra_build_algo { IVF_PQ, NN_DESCENT };
 
+// AUTO must match the linked cuVS enum value: 100 upstream (>= 25.12), but 3/2
+// on hipVS (older cuVS, where AUTO is the implicit trailing enumerator). See
+// the note in GpuIndexCagra.h -- these values are static_cast straight into
+// cuVS.
 enum class cagra_search_algo {
     SINGLE_CTA = 0,
     MULTI_CTA = 1,
     MULTI_KERNEL = 2,
-    AUTO = 100
+#ifdef USE_AMD_ROCM
+    AUTO = 3 // hipVS (older cuVS) uses the implicit trailing value
+#else
+    AUTO = 100 // cuVS >= 25.12
+#endif
 };
 
-enum class cagra_hash_mode { HASH = 0, SMALL = 1, AUTO = 100 };
+enum class cagra_hash_mode {
+    HASH = 0,
+    SMALL = 1,
+#ifdef USE_AMD_ROCM
+    AUTO = 2 // hipVS (older cuVS) uses the implicit trailing value
+#else
+    AUTO = 100 // cuVS >= 25.12
+#endif
+};
 
 namespace gpu {
 

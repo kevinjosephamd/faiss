@@ -243,16 +243,37 @@ struct GpuIndexCagraConfig : public GpuIndexConfig {
     bool gpu_hnsw_guarantee_connectivity = true;
 };
 
+// NOTE on the AUTO sentinel values below:
+// These enums are cast (via faiss::cagra_search_algo / faiss::cagra_hash_mode)
+// straight into the cuVS enums of the same name, so their values must match
+// whatever cuVS build we link against. Upstream cuVS assigns AUTO = 100 as of
+// 25.12 (and Faiss targets 26.02), but hipVS is forked from an older cuVS
+// (<= 25.10) where AUTO is the implicit trailing enumerator (search_algo::AUTO
+// = 3, hash_mode::AUTO = 2). The concrete modes (0/1/2) are stable across both,
+// so only AUTO needs to differ. Getting this wrong makes cuVS reject the search
+// with "[CAGRA Error] An invalid kernel mode has been given: 100".
 enum class search_algo {
     /// For large batch sizes.
     SINGLE_CTA = 0,
     /// For small batch sizes.
     MULTI_CTA = 1,
     MULTI_KERNEL = 2,
-    AUTO = 100
+#ifdef USE_AMD_ROCM
+    AUTO = 3 // hipVS (older cuVS) uses the implicit trailing value
+#else
+    AUTO = 100 // cuVS >= 25.12
+#endif
 };
 
-enum class hash_mode { HASH = 0, SMALL = 1, AUTO = 100 };
+enum class hash_mode {
+    HASH = 0,
+    SMALL = 1,
+#ifdef USE_AMD_ROCM
+    AUTO = 2 // hipVS (older cuVS) uses the implicit trailing value
+#else
+    AUTO = 100 // cuVS >= 25.12
+#endif
+};
 
 struct SearchParametersCagra : SearchParameters {
     /// Maximum number of queries to search at the same time (batch size). Auto
